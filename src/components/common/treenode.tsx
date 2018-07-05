@@ -7,7 +7,7 @@
 * width：节点容器宽度
 * height：节点容器高度
 */
-export const drawNode = (ctx, node, x, y, width = 200, height = 80, radius, innerRadius,pieColor) => {
+export const drawNode = (ctx, node, x, y, width = 200, height = 80, radius, innerRadius, pieColor) => {
     //绘制节点容器，一个矩形框
     ctx.strokeStyle = '#E9E9E9';
     ctx.strokeRect(x - width / 2, y - height / 2, width, height);
@@ -30,7 +30,7 @@ export const drawNode = (ctx, node, x, y, width = 200, height = 80, radius, inne
     let textY2 = y + 14;
     ctx.fillText(node.count, textX2, textY2);
 
-    drawRingPie(ctx, node, x + width * 0.3, y, radius, innerRadius,pieColor)
+    drawRingPie(ctx, node, x + width * 0.3, y, radius, innerRadius, pieColor)
 }
 
 /**
@@ -108,9 +108,18 @@ export const drawLine = (ctx, x0, y0, x1, y1, height = 80) => {
         ctx.moveTo(x1, y0 + (y1 - y0) / 2);
         ctx.lineTo(x1, y1 - height / 2);
         ctx.stroke();
+
     } else {//直线
         ctx.lineTo(x1, y1 - height / 2);
         ctx.stroke();
     }
+
+    //绘制箭头
+    ctx.moveTo(x1, y1 - height / 2);
+    ctx.lineTo(x1 - 5, y1 - (height / 2) - 5);
+    ctx.lineTo(x1 + 5, y1 - (height / 2) - 5);
+    ctx.closePath();
+    ctx.fillStyle = "#169BD5";
+    ctx.fill();
 }
 
