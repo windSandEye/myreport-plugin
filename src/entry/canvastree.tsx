@@ -1,0 +1,1 @@
+export { default as CanvasTree } from '../components/canvas-tree/canvastree';

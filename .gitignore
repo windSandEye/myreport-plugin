@@ -1,0 +1,10 @@
+dist/
+*.swp
+*.un~
+node_modules/
+.idea/
+.DS_Store
+es/
+lib/
+npm-debug.log
+coverage
