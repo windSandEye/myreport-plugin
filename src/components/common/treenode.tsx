@@ -123,3 +123,28 @@ export const drawLine = (ctx, x0, y0, x1, y1, height = 80) => {
     ctx.fill();
 }
 
+//画横向箭头
+export const drawFromLine = (ctx, x0, y0, x1, y1, width = 200) => {
+    ctx.strokeStyle = "#169BD5";
+    ctx.beginPath();
+    ctx.moveTo(x0 + width / 2, y0);
+    ctx.lineTo(x1 - width / 2, y1);
+    ctx.stroke();
+
+    //绘制箭头
+    ctx.moveTo(x1 - width / 2, y1);
+    ctx.lineTo(x1 - width / 2 - 5, y1 - 5);
+    ctx.lineTo(x1 - width / 2 - 5, y1 + 5);
+    ctx.closePath();
+    ctx.fillStyle = "#169BD5";
+    ctx.fill();
+}
+
+//生成uuid
+export const createGuid = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+

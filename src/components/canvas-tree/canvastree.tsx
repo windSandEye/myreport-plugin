@@ -65,7 +65,7 @@ class CanvasTree extends Component<CanvasTreeProps> {
         let todayChildren = [];
         let historyChildren = [];
         for (let item of registerSource.childrenList) {
-            if (item.is_register_today == "0") {
+            if (item.is_register_today == "1") {
                 todayChildren.push(item);
             } else {
                 historyChildren.push(item);
@@ -78,13 +78,13 @@ class CanvasTree extends Component<CanvasTreeProps> {
         todayTree.id = this.createGuid();
 
         //封装历史注册用户
-        let historyTree = this.createTreeNode(historyChildren, registerSource.todayCount);
+        let historyTree = this.createTreeNode(historyChildren, registerSource.historyCount);
         historyTree.desc = "历史注册用户";
         historyTree.id = this.createGuid();
 
         //封装总注册用户
         let rootChildren = [todayTree, historyTree];
-        let rootTree = this.createTreeNode(rootChildren, registerSource.todayCount + registerSource.todayCount);
+        let rootTree = this.createTreeNode(rootChildren, registerSource.todayCount + registerSource.historyCount);
         rootTree.desc = "总注册用户";
         if (rootTree.count == 0) {
             rootTree.percent = 0
@@ -101,23 +101,23 @@ class CanvasTree extends Component<CanvasTreeProps> {
     //统计注册用户
     statisticsRegister(data: any[]) {
         //今日淘宝注册
-        let taobaoToday = data.find(item => item.is_register_today == "0" && item.trade_from == 'taobao');
+        let taobaoToday = data.find(item => item.is_register_today == "1" && item.trade_from == 'taobao');
         let taobaoTodayCount = taobaoToday ? taobaoToday.usercount : 0;
         //今日支付宝注册
-        let alipayToday = data.find(item => item.is_register_today == "0" && item.trade_from == 'alipay');
+        let alipayToday = data.find(item => item.is_register_today == "1" && item.trade_from == 'alipay');
         let alipayTodayCount = alipayToday ? alipayToday.usercount : 0;
 
         //历史淘宝注册
-        let taobaoHistory = data.find(item => item.is_register_today == "1" && item.trade_from == 'taobao');
+        let taobaoHistory = data.find(item => item.is_register_today == "0" && item.trade_from == 'taobao');
         let taobaoHistoryCount = taobaoHistory ? taobaoHistory.usercount : 0;
 
         //历史支付宝注册
-        let alipayHistory = data.find(item => item.is_register_today == "1" && item.trade_from == 'alipay');
+        let alipayHistory = data.find(item => item.is_register_today == "0" && item.trade_from == 'alipay');
         let alipayHistoryCount = alipayHistory ? alipayHistory.usercount : 0;
 
         //今日注册
         let todayCount = data.reduce((prev, cur) => {
-            if (cur.is_register_today == "0") {
+            if (cur.is_register_today == "1") {
                 return prev + parseInt(cur.usercount);
             } else {
                 return prev;
@@ -126,7 +126,7 @@ class CanvasTree extends Component<CanvasTreeProps> {
 
         //历史注册
         let historyCount = data.reduce((prev, cur) => {
-            if (cur.is_register_today == "1") {
+            if (cur.is_register_today == "0") {
                 return prev + parseInt(cur.usercount);
             } else {
                 return prev;
@@ -137,10 +137,10 @@ class CanvasTree extends Component<CanvasTreeProps> {
             todayCount: todayCount,
             historyCount: historyCount,
             childrenList: [
-                { "is_register_today": "0", "trade_from": "taobao", "count": taobaoTodayCount, desc: '淘宝注册用户', id: this.createGuid() },
-                { "is_register_today": "0", "trade_from": "alipay", "count": alipayTodayCount, desc: '支付宝注册用户', id: this.createGuid() },
-                { "is_register_today": "1", "trade_from": "taobao", "count": taobaoHistoryCount, desc: '淘宝注册用户', id: this.createGuid() },
-                { "is_register_today": "1", "trade_from": "alipay", "count": alipayHistoryCount, desc: '支付宝注册用户', id: this.createGuid() },
+                { "is_register_today": "1", "trade_from": "taobao", "count": taobaoTodayCount, desc: '淘宝注册用户', id: this.createGuid() },
+                { "is_register_today": "1", "trade_from": "alipay", "count": alipayTodayCount, desc: '支付宝注册用户', id: this.createGuid() },
+                { "is_register_today": "0", "trade_from": "taobao", "count": taobaoHistoryCount, desc: '淘宝注册用户', id: this.createGuid() },
+                { "is_register_today": "0", "trade_from": "alipay", "count": alipayHistoryCount, desc: '支付宝注册用户', id: this.createGuid() },
             ]
         }
 

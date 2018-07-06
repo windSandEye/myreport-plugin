@@ -3,3 +3,6 @@ export { default as CanvasTree } from '../components/canvas-tree/canvastree';
 
 //支付能力与登陆树
 export { default as PayAbilityLoginTree } from '../components/pay_ability_login/pay_ability_login_tree';
+
+//支付能力与人群树
+export { default as PayAbilityCrowdTree } from '../components/pay_ability_crowd/pay_ability_crowd_tree';
