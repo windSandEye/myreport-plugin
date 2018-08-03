@@ -6,3 +6,6 @@ export { default as PayAbilityLoginTree } from '../components/pay_ability_login/
 
 //支付能力与人群树
 export { default as PayAbilityCrowdTree } from '../components/pay_ability_crowd/pay_ability_crowd_tree';
+
+//支付能力与人群分组树
+export { default as PayAbilityCrowdGroupTree } from '../components/pay_ability_crowd_group/pay_ability_crowd_group';

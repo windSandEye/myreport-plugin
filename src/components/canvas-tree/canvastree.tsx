@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { utils } from '@alipay/report-engine';
-import underscore from 'underscore';
-import { drawNode, drawLine } from '../common/treenode';
+import lodash from 'lodash';
+import { drawNode, drawLine, getPixelRatio, floatSub, floatDivision } from '../common/treenode';
 
 interface CanvasTreeProps {
     source: any[],
@@ -11,20 +11,38 @@ interface CanvasTreeProps {
     nodeWidth: number,
     nodeHeight: number,
     radius: number,          //nodeWidth*0.2-10
-    innerRadius: number      //nodeWidth*0.2-25
+    innerRadius: number,      //nodeWidth*0.2-25
+    treeId: string
+
 }
 
 interface CanvasTreeState {
     color: string[];
     treeData: any[];
+    ratio: number;
+    tipNode: PieProps;
+    mousePosition: positionProps;
 }
 
-interface NodeProps {
-    id: string,
-    desc: string,
-    count: number,
-    percent: number
-    pieData: number[],
+class PieProps {
+    desc: string;
+    name: string;
+    value: number;
+}
+
+class positionProps {
+    x: number;
+    y: number;
+}
+
+class NodeProps {
+    id: string;
+    desc: string;
+    count: number;
+    percent: number;
+    pieData: PieProps[];
+    position: string;
+    depth: number;
     children: NodeProps[]
 }
 
@@ -44,18 +62,25 @@ class CanvasTree extends Component<CanvasTreeProps> {
 
     public state: CanvasTreeState = {
         color: ['#0096FA', '#E9E9E9'],
-        treeData: this.treeSource(this.props.source) || []
+        treeData: this.treeSource(this.props.source) || [],
+        tipNode: null,
+        ratio: 1,
+        mousePosition: {
+            x: 0,
+            y: 0
+        }
     };
 
 
     static defaultProps = {
+        treeId: 'canvasTree',
         fit: false,
-        width: 850,
-        height: 400,
-        nodeWidth: 200,
-        nodeHeight: 80,
-        radius: 30,          //nodeWidth*0.2-10
-        innerRadius: 15      //nodeWidth*0.2-25
+        width: 1400,
+        height: 900,
+        nodeWidth: 300,
+        nodeHeight: 150,
+        radius: 65,          //nodeWidth*0.25-10
+        innerRadius: 40      //nodeWidth*0.25-25
     }
 
     //封装树
@@ -88,10 +113,10 @@ class CanvasTree extends Component<CanvasTreeProps> {
         rootTree.desc = "总注册用户";
         if (rootTree.count == 0) {
             rootTree.percent = 0
-            rootTree.pieData = [0, 1];
+            rootTree.pieData = [{ desc: rootTree.desc, name: rootTree.desc, value: 0 }, { desc: rootTree.desc, name: '其他', value: 1 }];
         } else {
             rootTree.percent = 100;
-            rootTree.pieData = [1, 0];
+            rootTree.pieData = [{ desc: rootTree.desc, name: rootTree.desc, value: 1 }, { desc: rootTree.desc, name: '其他', value: 0 }];
         }
         rootTree.id = this.createGuid();;
 
@@ -148,24 +173,18 @@ class CanvasTree extends Component<CanvasTreeProps> {
 
     //根据子节点反向创建一个父节点
     createTreeNode(treeChildren, count) {
-        let treeNode: NodeProps = {
-            id: null,
-            desc: null,
-            count: null,
-            percent: null,
-            pieData: [],
-            children: []
-        }
+        let treeNode = new NodeProps();
         treeNode.count = count;
-
         //遍历设置今日淘宝支付宝注册占比
         for (let node of treeChildren) {
             if (treeNode.count == 0) {
                 node.percent = 0;
-                node.pieData = [0, 1]
+                node.pieData = [{ desc: node.desc, name: node.desc, value: 0 }, { desc: node.desc, name: '其他', value: 1 }]
             } else {
                 node.percent = Math.round((node.count * 10000 / treeNode.count)) / 100;
-                node.pieData = [node.percent / 100, 1 - node.percent / 100];
+                node.pieData = [
+                    { desc: node.desc, name: node.desc, value: floatDivision(node.percent, 100) },
+                    { desc: node.desc, name: '其他', value: floatSub(1, floatDivision(node.percent, 100)) }]
             }
         }
         treeNode.children = treeChildren;
@@ -227,29 +246,30 @@ class CanvasTree extends Component<CanvasTreeProps> {
     }
 
     //为节点添加x，y坐标
-    dealData(canvas) {
+    dealData(canvas, scale, treeData) {
         const width = canvas.width;
         const height = canvas.height;
-        let treeData = this.state.treeData;
-        const depth = this.getMaxDepath(treeData);
-        this.setNodeDepth(treeData);
-        const nodeYSacle = (height - this.props.nodeHeight - 30) / (depth - 1);
-        this.setNodePoint(treeData, width, height, nodeYSacle);
+        let newTreeData = lodash.cloneDeep(treeData);
+        const depth = this.getMaxDepath(newTreeData);
+        this.setNodeDepth(newTreeData);
+        const nodeYSacle = (height - this.props.nodeHeight * scale) / (depth - 1);
+        this.setNodePoint(newTreeData, newTreeData, width, height, nodeYSacle, scale);
+        return newTreeData;
     }
 
     //设置节点的x,y坐标
-    setNodePoint(treeData, width, height, nodeYSacle) {
-        let nodeLength = treeData.length;
+    setNodePoint(treeData, childrenData, width, height, nodeYSacle, scale) {
+        let nodeLength = childrenData.length;
         if (nodeLength > 0) {
             let nodeXScale = 0;
             for (let i = 0; i < nodeLength; i++) {
-                let floorList = this.getNodeDepathNum(this.state.treeData, treeData[i].depth);
-                nodeXScale = width / (Math.pow(2, treeData[i].depth));   //横纵度量：2的depth次方为每个深度最大的节点数
-                let nodeIndex = floorList.findIndex((node) => node.id === treeData[i].id);
-                treeData[i].x = nodeXScale * (2 * (nodeIndex + 1) - 1); //每个节点间的距离2n-1
-                treeData[i].y = nodeYSacle * (treeData[i].depth - 1) + 15 + this.props.nodeHeight / 2;
-                if (treeData[i].children) {
-                    this.setNodePoint(treeData[i].children, width, height, nodeYSacle);
+                let floorList = this.getNodeDepathNum(treeData, childrenData[i].depth);
+                nodeXScale = width / (Math.pow(2, childrenData[i].depth));   //横纵度量：2的depth次方为每个深度最大的节点数
+                let nodeIndex = floorList.findIndex((node) => node.id === childrenData[i].id);
+                childrenData[i].x = nodeXScale * (2 * (nodeIndex + 1) - 1); //每个节点间的距离2n-1
+                childrenData[i].y = nodeYSacle * (childrenData[i].depth - 1) + this.props.nodeHeight * scale / 2;
+                if (childrenData[i].children) {
+                    this.setNodePoint(treeData, childrenData[i].children, width, height, nodeYSacle, scale);
                 }
             }
         }
@@ -263,22 +283,51 @@ class CanvasTree extends Component<CanvasTreeProps> {
 
     redrawTree(treeData) {
         let canvas: any;
-        canvas = document.getElementById("customTree");
+        canvas = document.getElementById(this.props.treeId);
+        const ctx = canvas.getContext('2d');
+        let ratio = getPixelRatio(ctx);
+        let scale = ratio;
         if (this.props.fit) {
-            if (canvas.parentNode.offsetWidth > 850) {
-                canvas.width = canvas.parentNode.offsetWidth;
+            if (canvas.parentNode.offsetWidth > 1400) {
+                canvas.width = canvas.parentNode.offsetWidth * scale;
+                canvas.height = this.props.height * scale;
             } else {
-                canvas.width = 850;
+                scale = canvas.parentNode.offsetWidth / 1400;
+                canvas.width = canvas.parentNode.offsetWidth * ratio;
+                canvas.height = this.props.height * scale * ratio;
+                scale = scale * ratio;
             }
         }
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        this.dealData(canvas)
-        this.drawTree(ctx, treeData, null);
+        this.setState({ ratio: 1 / ratio });
+        ctx.clearRect(0, 0, canvas.width, canvas.height, null, false);
+        let newTreeData = this.dealData(canvas, scale, treeData)
+        this.drawTree(ctx, newTreeData, null, scale);
+
+        //鼠标移动事件
+        canvas.addEventListener('mousemove', (e) => {
+            //鼠标移入位置偏移ratio倍
+            let eventX = e.clientX * ratio - canvas.getBoundingClientRect().left;
+            let eventY = e.clientY * ratio - canvas.getBoundingClientRect().top;
+            let mousePoint = { x: eventX, y: eventY, clientX: e.clientX, clientY: e.clientY };
+            let isRingRange = this.isRingRangePostion(mousePoint, newTreeData, this.props.nodeWidth,
+                this.props.innerRadius, this.props.radius, scale);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            this.drawTree(ctx, newTreeData, null, scale, mousePoint, isRingRange);
+            if (!isRingRange) {
+                this.setState({ tipNode: null });
+            }
+        }, false)
+
+        //鼠标滚轮事件
+        canvas.addEventListener('wheel', () => {
+            this.setState({ tipNode: null });
+        }, false)
     }
 
+
     componentWillReceiveProps(nextProps: CanvasTreeProps) {
-        if (!underscore.isEqual(nextProps.source, this.props.source)) {
+        if (!lodash.isEqual(nextProps.source, this.props.source)) {
             let newData = this.treeSource(nextProps.source);
             this.setState({ treeData: newData }, function () {
                 this.redrawTree(newData);
@@ -287,26 +336,92 @@ class CanvasTree extends Component<CanvasTreeProps> {
     }
 
 
-    drawTree(ctx, treeData, parentNode) {
+    drawTree(ctx, treeData, parentNode, scale, mousePoint = null, isRingRange = false) {
         let nodeLength = treeData.length;
         if (nodeLength > 0) {
             for (let node of treeData) {
-                drawNode(ctx, node, node.x, node.y, this.props.nodeWidth,
-                    this.props.nodeHeight, this.props.radius, this.props.innerRadius, this.state.color);
+                drawNode(ctx, node, node.x, node.y, this.props.nodeWidth, this.props.nodeHeight,
+                    this.props.radius, this.props.innerRadius, this.state.color, scale, mousePoint, isRingRange, this);
                 if (parentNode) {
-                    drawLine(ctx, parentNode.x, parentNode.y, node.x, node.y);
+                    drawLine(ctx, parentNode.x, parentNode.y, node.x, node.y, this.props.nodeHeight * scale);
                 }
                 if (node.children) {
-                    this.drawTree(ctx, node.children, node);
+                    this.drawTree(ctx, node.children, node, scale, mousePoint, isRingRange);
                 }
             }
         }
     }
 
+    //是否在圆环上
+    isRingRangePostion(mousePoint, treeData, nodeWidth, innerRadius, radius, scale) {
+        if (!mousePoint) {
+            return false;
+        }
+        let nodeLength = treeData.length;
+        let eventX = mousePoint.x;
+        let eventY = mousePoint.y;
+        if (nodeLength > 0) {
+            for (let node of treeData) {
+                //点击位置到圆心的距离，勾股定理计算
+                let cricleX = node.x + nodeWidth * scale / 4;//圆心x坐标
+                let cricleY = node.y;
+                let distanceFromCenter = Math.sqrt(Math.pow(cricleX - eventX, 2)
+                    + Math.pow(cricleY - eventY, 2))
+                //是否在圆环上
+                if (distanceFromCenter > innerRadius * scale && distanceFromCenter < radius * scale) {
+                    return true;
+                }
+                if (node.children) {
+                    let ring = this.isRingRangePostion(mousePoint, node.children, nodeWidth, innerRadius, radius, scale);
+                    if (ring) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    //获取提示的定位位置
+    getTipPosition() {
+        let tipDiv = document.getElementById(`${this.props.treeId}Tip`);
+        let mousePosition = this.state.mousePosition;
+        let top1 = mousePosition.y + 12;
+        let left = mousePosition.x + 12;
+        if (tipDiv) {
+            if (mousePosition.x + tipDiv.offsetWidth > window.innerWidth) {
+                left = mousePosition.x - 12 - tipDiv.offsetWidth;
+            }
+            if (mousePosition.y + tipDiv.offsetHeight > window.innerHeight) {
+                top1 = mousePosition.y - 12 - tipDiv.offsetHeight;
+
+            }
+        }
+        return { top: top1, left: left }
+    }
+
     render() {
+        let position = this.getTipPosition();
+        let tipClass: any = {
+            position: 'fixed',
+            zIndex: 999,
+            visibility: this.state.tipNode ? 'visible' : 'hidden',
+            backgroundColor: '#826d6d',
+            top: position.top,
+            left: position.left,
+            padding: '15px',
+            color: '#fff',
+            borderRadius: '5px',
+            textAlign: 'left'
+        }
+
         return (
-            <div {...this.props}>
-                <canvas id="customTree" width={this.props.width} height={this.props.height}></canvas>
+            <div {...this.props} >
+                <canvas id={this.props.treeId} width={this.props.width} height={this.props.height} style={{ zoom: this.state.ratio }}></canvas>
+                <div style={tipClass} id={`${this.props.treeId}Tip`}>
+                    <div>{this.state.tipNode ? this.state.tipNode.desc : null}</div>
+                    <div>{this.state.tipNode ? this.state.tipNode.name : null} : {this.state.tipNode ? this.state.tipNode.value : null}</div>
+                </div>
             </div>
         )
     }

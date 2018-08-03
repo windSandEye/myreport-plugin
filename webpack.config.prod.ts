@@ -14,6 +14,7 @@ export default () => ({
     'download-csv': './src/entry/download-csv.tsx',
     manager: './src/templates/manager/index.ts', // 高管大盘
     canvastree:'./src/entry/canvastree.tsx',
+    paymentDataCenterFilter:'./src/filters/payment_ data_center.ts',
   },
   output: {
     filename: '[name].js',

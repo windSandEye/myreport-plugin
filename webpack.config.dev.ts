@@ -16,6 +16,8 @@ export default (_env, { port }) => ({
     my: './src/entry/my.tsx',
     manager: './src/templates/manager/index.ts', // 高管大盘
     canvastree:'./src/entry/canvastree.tsx',
+    paymentDataCenterFilter:'./src/filters/payment_ data_center.ts',
+    familyNumberFilter:'./src/filters/family_number.js',
   },
   output: {
     filename: '[name].js',
