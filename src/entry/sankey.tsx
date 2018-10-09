@@ -1,0 +1,1 @@
+export { default as ExplanatoryBar } from '../components/chart/sankey/sankey';

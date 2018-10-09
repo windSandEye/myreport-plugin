@@ -15,9 +15,16 @@ export default (_env, { port }) => ({
     dingding: './src/filters/dingding.ts',
     my: './src/entry/my.tsx',
     manager: './src/templates/manager/index.ts', // 高管大盘
-    canvastree:'./src/entry/canvastree.tsx',
-    paymentDataCenterFilter:'./src/filters/payment_ data_center.ts',
-    familyNumberFilter:'./src/filters/family_number.js',
+    canvastree: './src/entry/canvastree.tsx',
+    paymentDataCenterFilter: './src/filters/payment_ data_center.ts',
+    familyNumberFilter: './src/filters/family_number.js',
+    userPaymentChangeFilter: './src/filters/user_payment_change_filter.js',
+    paymentToolsSuccessFilter: './src/filters/payment_tools_success_filter.js',
+    explanatoryBar: './src/entry/explanatory-bar.tsx',
+    paymentAbnormalFilter: './src/filters/payment_abnormal_filter.js',
+    sankeyChart:'./src/entry/sankey.tsx',
+    uvFilter:'./src/filters/uv_filter.js',
+    paymentFilter:'src/filters/payment_filter.js',
   },
   output: {
     filename: '[name].js',
@@ -30,7 +37,7 @@ export default (_env, { port }) => ({
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.(tsx|js|ts)?$/,
         exclude: /node_modules/,
         use: [
           {
@@ -95,6 +102,7 @@ export default (_env, { port }) => ({
     clientLogLevel: 'none',
     contentBase: __dirname,
     disableHostCheck: true,
+    inline: false,
     host,
     https: true,
     port,

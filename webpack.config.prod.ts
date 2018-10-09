@@ -2,6 +2,7 @@ import * as webpack from 'webpack';
 import * as path from 'path';
 import * as autoprefixer from 'autoprefixer';
 import * as ExtractTextPlugin from 'extract-text-webpack-plugin';
+// import UglifyJSPlugin from 'uglifyjs-webpack-plugin';
 
 const buildPath = 'dist';
 export default () => ({
@@ -13,8 +14,14 @@ export default () => ({
     my: './src/entry/my.tsx',
     'download-csv': './src/entry/download-csv.tsx',
     manager: './src/templates/manager/index.ts', // 高管大盘
-    canvastree:'./src/entry/canvastree.tsx',
-    paymentDataCenterFilter:'./src/filters/payment_ data_center.ts',
+    canvastree: './src/entry/canvastree.tsx',
+    paymentDataCenterFilter: './src/filters/payment_ data_center.ts',
+    userPaymentChangeFilter: './src/filters/user_payment_change_filter.js',
+    paymentToolsSuccessFilter: './src/filters/payment_tools_success_filter.js',
+    explanatoryBar: './src/entry/explanatory-bar.tsx',
+    paymentAbnormalFilter: './src/filters/payment_abnormal_filter.js',
+    familyNumberFilter: './src/filters/family_number.js',
+    uvFilter:'./src/filters/uv_filter.js',
   },
   output: {
     filename: '[name].js',
@@ -27,7 +34,7 @@ export default () => ({
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.(tsx|js|ts)?$/,
         exclude: /node_modules/,
         use: [
           {
@@ -86,6 +93,6 @@ export default () => ({
   plugins: [
     new webpack.EnvironmentPlugin({ NODE_ENV: 'development', DEBUG: true }), // 环境变量
     new ExtractTextPlugin({ filename: '[name].css', disable: false }),
-    new webpack.optimize.UglifyJsPlugin(),
+    new webpack.optimize.UglifyJsPlugin()
   ],
 });
