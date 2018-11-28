@@ -280,12 +280,16 @@ export const floatMul = (a, b) => {
         d = a + "",                  //字符串化
         e = b + "";
     try {
-        m = d.split(".")[1].length;
+        if(d.split(".")[1]){
+            m = d.split(".")[1].length;
+        }
     } catch (error) {
         console.log(error)
     }
     try {
-        n = e.split(".")[1].length;
+        if(e.split(".")[1]){
+            n = e.split(".")[1].length;
+        }
     } catch (error) {
         console.log(error)
     }
@@ -299,12 +303,16 @@ export const floatAdd = (a, b) => {
         d = a + "",                  //字符串化
         e = b + "";
     try {
-        m = d.split(".")[1].length;
+        if(d.split(".")[1]){
+            m = d.split(".")[1].length;
+        }
     } catch (error) {
         console.log(error)
     }
     try {
-        n = e.split(".")[1].length;
+        if(e.split(".")[1]){
+            n = e.split(".")[1].length;
+        }
     } catch (error) {
         console.log(error)
     }
@@ -318,12 +326,16 @@ export const floatSub = (a, b) => {
         d = a + "",                  //字符串化
         e = b + "";
     try {
-        m = d.split(".")[1].length;
+        if(d.split(".")[1]){
+            m = d.split(".")[1].length;
+        }
     } catch (error) {
         console.log(error)
     }
     try {
-        n = e.split(".")[1].length;
+        if(e.split(".")[1]){
+            n = e.split(".")[1].length;
+        }
     } catch (error) {
         console.log(error)
     }
@@ -337,12 +349,16 @@ export const floatDivision = (a, b) => {
         d = a + "",                  //字符串化
         e = b + "";
     try {
-        m = d.split(".")[1].length;
+        if(d.split(".")[1]){
+            m = d.split(".")[1].length;
+        }
     } catch (error) {
         console.log(error)
     }
     try {
-        n = e.split(".")[1].length;
+        if(e.split(".")[1]){
+            n = e.split(".")[1].length;
+        }
     } catch (error) {
         console.log(error)
     }

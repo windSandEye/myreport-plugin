@@ -24,7 +24,9 @@ export default (_env, { port }) => ({
     paymentAbnormalFilter: './src/filters/payment_abnormal_filter.js',
     sankeyChart:'./src/entry/sankey.tsx',
     uvFilter:'./src/filters/uv_filter.js',
-    paymentFilter:'src/filters/payment_filter.js',
+    pvFilter:'./src/filters/pv_filter.js',
+    cardBusiness:'./src/entry/card-business.tsx',
+    // cardBusinessFilter:'src/filters/card_business_filter.ts'
   },
   output: {
     filename: '[name].js',

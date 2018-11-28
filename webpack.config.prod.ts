@@ -22,6 +22,8 @@ export default () => ({
     paymentAbnormalFilter: './src/filters/payment_abnormal_filter.js',
     familyNumberFilter: './src/filters/family_number.js',
     uvFilter:'./src/filters/uv_filter.js',
+    pvFilter:'./src/filters/pv_filter.js',
+    cardBusiness:'./src/entry/card-business.tsx',
   },
   output: {
     filename: '[name].js',

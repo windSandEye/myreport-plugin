@@ -181,9 +181,11 @@ define(function (require, exports, module) {
 		//封装每行数据
 		for (var i = 0; i < 5; i++) {
 			var row = [];
-			for (var j = 0; j < result.length; j++) {
-				if (result[j].pay_ability_yesterday == i) {
-					row.push(result[j]);
+			if (result && result.length > 0) {
+				for (var j = 0; j < result.length; j++) {
+					if (result[j].pay_ability_yesterday == i) {
+						row.push(result[j]);
+					}
 				}
 			}
 
@@ -276,6 +278,263 @@ define(function (require, exports, module) {
 		for (var x = 0; x < row.length; x++) {
 			if (row[x].pay_ability_today == index) {
 				return row[x].usercount;
+			}
+		}
+		return null;
+	}
+
+	exports.polymerizationFilter = function (key) {
+		if (key == "all") {
+			return JSON.stringify({
+				polymericName: "all",
+				polymericSource: "all"
+			})
+		} else if (key == "tbNewResultPage") {
+			return JSON.stringify({
+				polymericName: null,
+				polymericSource: "tbNewResultPage"
+			})
+		} else {
+			return JSON.stringify({
+				polymericName: null,
+				polymericSource: "openPaymentCode"
+			})
+		}
+	}
+
+	exports.paymentLevelChangeFilter = function (response) {
+		let result = response[0] ? response[0].result : null;
+		let sumResult = response[1] ? response[1].result : null;
+		var tableData = [];
+		if (!result) {
+			return {
+				result: tableData,
+				status: 'success'
+			}
+		}
+		let column = ["T4", "T3", "T2", "T0/1", "注册"]
+		for (let col of column) {
+			let row = createLevelRow(col);
+			switch (col) {
+				case "T4":
+					row.userCntFrom = result.pay_ability_4_add;
+					row.userCntLost = result.pay_ability_4_lost;
+					row.userCntAdd = result.pay_ability_4_add * 1 - result.pay_ability_4_lost * 1;
+					if (sumResult) {
+						let history4 = sumResult.find(item => item.pay_ability_today == "4");
+						row.userCntHistory = history4 && history4.user_cnt_total ? history4.user_cnt_total : 0;
+					} else {
+						row.userCntHistory = 0;
+					}
+					break;
+				case "T3":
+					row.userCntFrom = result.pay_ability_3_add;
+					row.userCntLost = result.pay_ability_3_lost;
+					row.userCntAdd = result.pay_ability_3_add * 1 - result.pay_ability_3_lost * 1;
+					if (sumResult) {
+						let history3 = sumResult.find(item => item.pay_ability_today == "3");
+						row.userCntHistory = history3 && history3.user_cnt_total ? history3.user_cnt_total : 0;
+					} else {
+						row.userCntHistory = 0;
+					}
+					break;
+				case "T2":
+					row.userCntFrom = result.pay_ability_2_add;
+					row.userCntLost = result.pay_ability_2_lost;
+					row.userCntAdd = result.pay_ability_2_add * 1 - result.pay_ability_2_lost * 1;
+					if (sumResult) {
+						let history2 = sumResult.find(item => item.pay_ability_today == "2");
+						row.userCntHistory = history2 && history2.user_cnt_total ? history2.user_cnt_total : 0;
+					} else {
+						row.userCntHistory = 0;
+					}
+					break;
+				case "T0/1":
+					row.userCntFrom = result.pay_ability_1and0_add;
+					row.userCntLost = result.pay_ability_1and0_lost;
+					row.userCntAdd = result.pay_ability_1and0_add * 1 - result.pay_ability_1and0_lost * 1;
+					if (sumResult) {
+						let history01 = sumResult.filter(
+							item => item.pay_ability_today == "0" || item.pay_ability_today == "1" || item.pay_ability_today == "-1");
+						if (history01 && history01.length > 0) {
+							row.userCntHistory = history01.reduce((prev, cur) => {
+								let user_cnt_total = cur.user_cnt_total ? cur.user_cnt_total*1 : 0;
+								return prev + user_cnt_total;
+							}, 0)
+						} else {
+							row.userCntHistory = 0;
+						}
+					} else {
+						row.userCntHistory = 0;
+					}
+					break;
+				case "注册":
+					row.userCntFrom = result.register_add;
+					row.userCntLost = null;
+					row.userCntAdd = result.register_add;
+					if (sumResult) {
+						let historyRegister = sumResult.find(item => item.pay_ability_today == "注册");
+						row.userCntHistory = historyRegister && historyRegister.user_cnt_total ? historyRegister.user_cnt_total : 0;
+					} else {
+						row.userCntHistory = 0;
+					}
+					break;
+			}
+			tableData.push(row)
+		}
+
+		return {
+			result: tableData,
+			status: 'success'
+		}
+
+	}
+
+	function createLevelRow(level) {
+		var row = {
+			level: level,
+			userCntFrom: null,
+			userCntLost: null,
+			userCntAdd: null
+		}
+		return row;
+	}
+
+
+
+
+	//支付能力变更弹窗
+	exports.showLevelModal = function (event, title, level) {
+		var searchLevel = level;
+		if (level == "T0/T1") {
+			searchLevel = "0和1"
+		} else if (level == "注册") {
+			searchLevel = "注册"
+		} else {
+			searchLevel = level.substring(1);
+		}
+		return JSON.stringify(
+			{
+				'T.showTrend': true,
+				'T.trendTitle': level + title + "趋势变化",
+				'T.level': searchLevel,
+				'T.trendType': title
+			}
+		)
+
+	}
+
+	//支付能力跃迁
+	exports.paymentChangeFilter = function (response) {
+		var tableData = [];
+		if (!response.result) {
+			return {
+				result: {
+					data: []
+				},
+				status: 'success'
+			}
+		}
+		var resultData = response.result;
+		var initLevelList = ['注册', '0/1', '2', '3', '4'];
+		for (var i = 0; i < initLevelList.length; i++) {
+			var group = changeLevelRow(resultData, initLevelList[i]);
+			var regist_cnt = group.reduce((prev, cur) => {
+				if (cur.user_cnt) {
+					return prev + parseInt(cur.user_cnt);
+				} else {
+					return prev;
+				}
+			}, 0);
+			//遍历设置初始值
+			initUserCnt(group, regist_cnt, tableData);
+		}
+
+		return {
+			result: {
+				data: tableData,
+			},
+			status: 'success'
+		}
+
+	}
+
+	//初始值设置
+	function initUserCnt(list, initCnt, tableList) {
+		for (var i = 0; i < list.length; i++) {
+			list[i].userCntInt = initCnt;
+			tableList.push(list[i]);
+		}
+	}
+
+
+	//01特殊处理
+	function deal01(data0, data1, data_1) {
+		var obj01 = {}
+		let cnt0 = 0, cnt1 = 0, cnt_1 = 0;
+		if (data0) {
+			cnt0 = data0.user_cnt
+		}
+		if (data1) {
+			cnt1 = data1.user_cnt
+		}
+		if (data_1) {
+			cnt_1 = data_1.user_cnt
+		}
+		obj01.user_cnt = cnt0 * 1 + cnt1 * 1 + cnt_1 * 1;
+		return obj01;
+	}
+
+	//跃迁行
+	function changeLevelRow(list, init) {
+		var groupList = [];
+		var changeLevelList = ['0/1', '2', '3', '4'];
+		for (var i = 0; i < changeLevelList.length; i++) {
+			if (init == "0/1" && changeLevelList[i] != "0/1") {
+				var init0 = findItem(list, 0, changeLevelList[i]);
+				var init1 = findItem(list, 1, changeLevelList[i]);
+				var init_1 = findItem(list, -1, changeLevelList[i]);
+				var init01_cnt = deal01(init0, init1, init_1);
+				var init01 = {
+					pay_ability_yesterday: "0/1",
+					pay_ability_today: changeLevelList[i],
+					user_cnt: init01_cnt.user_cnt != 0 ? init01_cnt.user_cnt : null
+				}
+				groupList.push(init01)
+			} else {
+				if (init != changeLevelList[i]) {
+					if (changeLevelList[i] == '0/1') {
+						var item0 = findItem(list, init, 0);
+						var item1 = findItem(list, init, 1);
+						var item_1 = findItem(list, init, -1);
+						var item01_cnt = deal01(item0, item1, item_1);
+						var item01 = {
+							pay_ability_yesterday: init,
+							pay_ability_today: '0/1',
+							user_cnt: item01_cnt.user_cnt != 0 ? item01_cnt.user_cnt : null
+						}
+						groupList.push(item01)
+					} else {
+						var item = findItem(list, init, changeLevelList[i]);
+						var itemObj = {
+							pay_ability_yesterday: init,
+							pay_ability_today: changeLevelList[i],
+							user_cnt: item ? item.user_cnt : null
+						}
+						groupList.push(itemObj)
+					}
+				}
+			}
+
+		}
+		return groupList
+	}
+
+	//查找对应的数据
+	function findItem(list, init, change) {
+		for (var i = 0; i < list.length; i++) {
+			if (list[i].pay_ability_yesterday == init && list[i].pay_ability_today == change) {
+				return list[i];
 			}
 		}
 		return null;

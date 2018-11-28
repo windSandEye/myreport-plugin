@@ -2,8 +2,8 @@ import moment from 'moment';
 import numeral from 'numeral';
 import lodash from 'lodash';
 
-const color = ['#FA5A48', '#10ABE8', '#F79A28', '#B1D65D', '#B6A1E0', '#FED625', '#1DC7CA', '#FF9185',
-    '#6e7074', '#546570', '#c4ccd3', '#3df7a9', '#2db70a', '#63390e', '#cfe8ff', '#c4dc65', '#7bf9e7'];
+const color = ['#FA5A48', '#10ABE8', '#F79A28', '#B1D65D', '#B6A1E0', '#FED625', '#1DC7CA',
+    '#6e7074', '#FF9185', '#546570', '#c4ccd3', '#3df7a9', '#2db70a', '#63390e', '#cfe8ff', '#c4dc65', '#7bf9e7'];
 
 //本日、本周、本月日期计算
 export const changeReportRange = (e, type) => {
@@ -67,7 +67,7 @@ export const selectLastMonthFilter = (event) => {
 
 //签约折线图时间变更
 export const changeSignRangeFilter = (event) => {
-    let beginDate = moment(event).subtract(30, 'days');
+    let beginDate = moment(event).subtract(9, 'days');
     return JSON.stringify(
         {
             sign_terminate_date: [beginDate, event],
@@ -332,6 +332,10 @@ export const prePaymentFilter = (response) => {
         }
 
         switch (row.pay_ability_pre) {
+            case '-1':
+                newRow.T0And1 = row.num * 1;
+                newRow.T0And1Ratio = row.ratio * 1;
+                break;
             case '0':
                 newRow.T0 = row.num * 1;
                 newRow.T0Ratio = row.ratio * 1;
@@ -353,6 +357,18 @@ export const prePaymentFilter = (response) => {
                 newRow.T4Ratio = row.ratio * 1;
                 break;
         }
+    }
+
+    //合并0和1
+    for (let item of tableData) {
+        let t0 = item.T0 ? item.T0 : 0;
+        let t0Ratio = item.T0Ratio ? item.T0Ratio : 0;
+        let t1 = item.T1 ? item.T1 : 0;
+        let t1Ratio = item.T1Ratio ? item.T1Ratio : 0;
+        let t01 = item.T0And1 ? item.T0And1 : 0;
+        let t01Ratio = item.T0And1Ratio ? item.T0And1Ratio : 0;
+        item.T0And1 = t01 + t0 + t1;
+        item.T0And1Ratio = t0Ratio + t1Ratio + t01Ratio;
     }
     return {
         result: {
@@ -421,23 +437,36 @@ export const useTableFilter = (response) => {
 export const paymentChangeFilter = (response) => {
     let paymentData = response.result ? response.result : [];
     let tableData = [];
-    let t0To3 = paymentData.find(item => item.pay_ability_pre == 0 && item.business_principal_payability == 3);
-    let t0To4 = paymentData.find(item => item.pay_ability_pre == 0 && item.business_principal_payability == 4);
-    let row0 = {
-        name: 'T0',
-        T3: t0To3 ? t0To3.num * 1 : null,
-        T4: t0To4 ? t0To4.num * 1 : null,
-    }
-    tableData.push(row0)
 
-    let t1To3 = paymentData.find(item => item.pay_ability_pre == 1 && item.business_principal_payability == 3);
-    let t1To4 = paymentData.find(item => item.pay_ability_pre == 1 && item.business_principal_payability == 4);
-    let row1 = {
-        name: 'T1',
-        T3: t1To3 ? t1To3.num * 1 : null,
-        T4: t1To4 ? t1To4.num * 1 : null,
+    let t01To3 = paymentData.find(item => item.pay_ability_pre == -1 && item.business_principal_payability == 3);
+    let t01To4 = paymentData.find(item => item.pay_ability_pre == -1 && item.business_principal_payability == 4);
+
+    if(!t01To3 && !t01To4){
+        let t0To3 = paymentData.find(item => item.pay_ability_pre == 0 && item.business_principal_payability == 3);
+        let t0To4 = paymentData.find(item => item.pay_ability_pre == 0 && item.business_principal_payability == 4);
+    
+        let t1To3 = paymentData.find(item => item.pay_ability_pre == 1 && item.business_principal_payability == 3);
+        let t1To4 = paymentData.find(item => item.pay_ability_pre == 1 && item.business_principal_payability == 4);
+
+        let t0To3Num = t0To3 ? t0To3.num * 1 : 0;
+        let t0To4Num = t0To4 ? t0To4.num * 1 : 0;
+        let t1To3Num = t1To3 ? t1To3.num * 1 : 0;
+        let t1To4Num = t1To4 ? t1To4.num * 1 : 0;
+        let row10 = {
+            name: 'T0/T1',
+            T3: (t0To3Num + t1To3Num) != 0 ? t0To3Num + t1To3Num : null,
+            T4: (t0To4Num + t1To4Num) != 0 ? t0To4Num + t1To4Num : null
+        }
+        tableData.push(row10)
+    }else{
+        let row01 = {
+            name: 'T0/T1',
+            T3: t01To3 ? t01To3.num * 1 : null,
+            T4: t01To4 ? t01To4.num * 1 : null,
+        }
+        tableData.push(row01)
     }
-    tableData.push(row1)
+
 
     let t2To3 = paymentData.find(item => item.pay_ability_pre == 2 && item.business_principal_payability == 3);
     let t2To4 = paymentData.find(item => item.pay_ability_pre == 2 && item.business_principal_payability == 4);
@@ -465,7 +494,6 @@ export const paymentChangeFilter = (response) => {
         T4: t4To4 ? t4To4.num * 1 : null,
     }
     tableData.push(row4)
-
     return {
         result: tableData,
         status: 'success'
@@ -626,9 +654,14 @@ export const openTooltipFilter = (params) => {
 
 
 export const quotaOptionFilter = (event) => {
-    if(event.name != '其他'){
+    if (event.name != '其他') {
         return JSON.stringify({
-            "T.T.quotaOption":event.name
+            "T.T.quotaOption": event.name
         })
-    }   
+    }
 }
+
+export const scrollFilter = (event) => {
+    console.log(event.scrollHeight)
+}
+

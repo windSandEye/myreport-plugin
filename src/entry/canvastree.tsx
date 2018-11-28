@@ -9,3 +9,7 @@ export { default as PayAbilityCrowdTree } from '../components/pay_ability_crowd/
 
 //支付能力与人群分组树
 export { default as PayAbilityCrowdGroupTree } from '../components/pay_ability_crowd_group/pay_ability_crowd_group';
+
+//可合并表格
+export {default as TableSpan} from '../components/chart/table/TableSpan';
+

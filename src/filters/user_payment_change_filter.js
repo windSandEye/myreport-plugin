@@ -1,4 +1,4 @@
-//数据变更关系图
+//支付能力变更分析报表
 import numeral from 'numeral';
 import moment from 'moment';
 const color = ['#c23531', '#2f4554', '#61a0a8', '#d48265', '#91c7ae', '#749f83', '#ca8622', '#bda29a', '#6e7074', '#546570', '#c4ccd3']
@@ -106,18 +106,19 @@ const getLinkData = (data, target) => {
                 },
                 lineStyle: {
                     width: getLinkWidth(data[i].user_cnt),
-                    curveness: 0.2, 
+                    curveness: 0.2,
                     color: '#52a8fd',
                     opacity: 0.6
                 }
             }
 
             switch (data[i].pay_ability_yesterday) {
-                case '-':
+                case '注册':
                     linkObj.source = '注册';
                     break;
                 case '0':
                 case '1':
+                case '-1':
                     linkObj.source = '0和1';
                     break;
                 case '2':
@@ -134,7 +135,7 @@ const getLinkData = (data, target) => {
 
             if (linkObj.source > linkObj.target) {
                 linkObj.lineStyle.curveness = 0.2;
-                   
+
             } else {
                 linkObj.lineStyle.curveness = -0.2;
 
@@ -193,7 +194,7 @@ const getColor = (source) => {
 export const showPaymentFilter = (chartObj) => {
     if (chartObj.dataType == 'node') {
         return JSON.stringify({
-            paymentName: chartObj.name
+            'T.paymentName': chartObj.name
         })
     }
 }
@@ -270,24 +271,56 @@ export const paymentFromAndToFilter = (response, paymentName) => {
     return rtn;
 }
 
+export const paymentAddLostFilter = (response) => {
+    let res = response.result;
+    if (!res) {
+        return {
+            result: {
+                pay_ability_add_ratio: 0,
+                pay_ability_lost: 0,
+                pay_ability_net_ratio: 0,
+                pay_ability_add: 0,
+                pay_ability_lost_ratio: 0,
+                pay_ability_net: 0,
+                pieSource: []
+            },
+            status: 'success'
+        }
+    }
+    return {
+        result: {
+            ...res,
+            pieSource: [
+                {
+                    name: '新增',
+                    count: res.pay_ability_add
+                }, {
+                    name: '流失',
+                    count: res.pay_ability_lost
+                }
+            ]
+        },
+        status: 'success'
+    }
+}
 //合并统计相同能力的数据
 const sourceCount = (source, sourceName, paymentName) => {
-    let nameList = ['注册', '等级0', '等级1', '等级2', '等级3', '等级4'];
+    let nameList = ['注册', '等级0和1', '等级2', '等级3', '等级4'];
     switch (paymentName) {
         case '注册':
-            nameList = ['等级0', '等级1', '等级2', '等级3', '等级4'];
+            nameList = ['等级0和1', '等级2', '等级3', '等级4'];
             break;
         case '0和1':
             nameList = ['注册', '等级2', '等级3', '等级4'];
             break;
         case '2':
-            nameList = ['注册', '等级0', '等级1', '等级3', '等级4'];
+            nameList = ['注册', '等级0和1', '等级3', '等级4'];
             break;
         case '3':
-            nameList = ['注册', '等级0', '等级1', '等级2', '等级4'];
+            nameList = ['注册', '等级0和1', '等级2', '等级4'];
             break;
         case '4':
-            nameList = ['注册', '等级0', '等级1', '等级2', '等级3'];
+            nameList = ['注册', '等级0和1', '等级2', '等级3'];
             break;
     }
 
@@ -385,3 +418,84 @@ export const changeTrendDate = (event) => {
         trendDate: [beginDate, endDate]
     })
 }
+
+
+//聚合数据源处理
+export const aggregationSourceFilter = (response) => {
+    return {
+        result: {
+            data: {
+                to1And0: response[0].result,
+                to2: response[1].result,
+                to3: response[2].result,
+                to4: response[3].result
+            }
+        },
+        status: 'success'
+    }
+}
+
+//来源流失柱状图处理
+export const fromAndLostBarFilter = (response, paymentAbility) => {
+    let fromData = response[0].result ? response[0].result : [];
+    let lostData = response[1].result ? response[1].result : [];
+    let nameList = ['注册', '等级0和1', '等级2', '等级3', '等级4'];
+    let barData = [];
+    for (let barName of nameList) {
+        let barObj = {};
+        let payAblity = barName.substring(2);
+        if (barName == paymentAbility || payAblity == paymentAbility) {
+            continue;
+        }
+        switch (barName) {
+            case '注册':
+                barObj.name = barName;
+                let fromObj = fromData.find(item => item.pay_ability == barName);
+                barObj.user_cnt_from = fromObj ? fromObj.user_cnt : 0;
+                let lostObj = lostData.find(item => item.pay_ability == barName);
+                barObj.user_cnt_to = lostObj ? lostObj.user_cnt : 0;
+                break;
+            case '等级0和1':
+                barObj.name = barName;
+                let fromObj0 = fromData.find(item => item.pay_ability == '0');
+                let fromObj1 = fromData.find(item => item.pay_ability == '1');
+                let fromObj_1 = fromData.find(item => item.pay_ability == '-1');
+                barObj.user_cnt_from = paymentOAnd1(fromObj0, fromObj1, fromObj_1)
+                let lostObject0 = lostData.find(item => item.pay_ability == '0');
+                let lostObject1 = lostData.find(item => item.pay_ability == '1');
+                let lostObject_1 = lostData.find(item => item.pay_ability == '-1');
+                barObj.user_cnt_to = paymentOAnd1(lostObject0, lostObject1, lostObject_1)
+                break;
+            default:
+                barObj.name = barName;
+                let payAblity = barName.substring(2);
+                let fromObj2 = fromData.find(item => item.pay_ability == payAblity);
+                barObj.user_cnt_from = fromObj2 ? fromObj2.user_cnt : 0;
+                let lostObj2 = lostData.find(item => item.pay_ability == payAblity);
+                barObj.user_cnt_to = lostObj2 ? lostObj2.user_cnt : 0;
+                break;
+        }
+        barData.push(barObj)
+    }
+
+    return {
+        result: barData,
+        status: 'success'
+    }
+}
+
+//0,1特殊处理
+const paymentOAnd1 = (payment0, payment1, payment_1) => {
+    let user_cnt = 0;
+    if (payment0) {
+        user_cnt = user_cnt + payment0.user_cnt * 1;
+    }
+    if (payment1) {
+        user_cnt = user_cnt + payment1.user_cnt * 1;
+    }
+    if (payment_1) {
+        user_cnt = user_cnt + payment_1.user_cnt * 1;
+    }
+    return user_cnt;
+}
+
